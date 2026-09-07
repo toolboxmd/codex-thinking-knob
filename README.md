@@ -1,5 +1,9 @@
 # Codex Thinking Knob
 
+Native desktop support is under development in Issue #5. The released 0.1.1
+wrapper remains the public version. See [desktop activation](docs/desktop.md)
+for candidate setup, proof and the remaining live verification boundary.
+
 Let Astra adjust its thinking effort as the work changes.
 
 Codex Thinking Knob by ToolboxMD is a standalone stdio wrapper for Codex App
@@ -23,10 +27,11 @@ Your client still owns its tasks, credentials, permissions and ordinary tools.
 - Your client must let you configure its App Server launch command and start
   tasks with `model: "gpt-6-astra"`. An omitted model is passed through without
   enabling adaptive control, since its identity has not been established.
-- Installing this plugin alone does not connect an unmodified Codex desktop
-  application to the wrapper. A client with configurable App Server launch is
-  required. Existing desktop tasks cannot be attached to this wrapper or
-  switched to adaptive control by installing the plugin.
+- The released stdio launcher serves configurable clients. The desktop adapter
+  uses the app's executable override and a plugin MCP tool to support resumed
+  tasks. Installing the plugin alone does not replace an already-open desktop
+  connection. Desktop activation and its remaining proof are documented
+  separately.
 
 ## Run from a checkout or extracted artifact
 

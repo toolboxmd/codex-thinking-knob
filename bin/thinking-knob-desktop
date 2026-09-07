@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+node_binary="${KNOB_NODE_BINARY:-node}"
+exec "$node_binary" "$(dirname "$0")/codex-thinking-knob-desktop.mjs" "$@"

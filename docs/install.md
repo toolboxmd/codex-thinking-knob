@@ -1,5 +1,8 @@
 # Isolated installation
 
+This page documents the released stdio wrapper. For the native desktop candidate,
+read [desktop activation](desktop.md); its release and live proof remain pending.
+
 Use Node.js 22 or later and a verified Codex App Server executable. Version
 0.153.4 is tested. Existing account access stays with Codex; this package does
 not copy or provision credentials.
@@ -71,8 +74,8 @@ The package includes a setup skill that can resolve its installed root and help
 configure a compatible client. Use the installed package's absolute launcher
 path. Cache locations can change after an update: resolve and recheck the path
 when updating. Plugin installation and launcher activation are separate steps.
-This wrapper cannot attach to an existing desktop task. Start a new connection from a client
-that supports a configurable App Server launch command.
+The legacy stdio launcher uses new task registration. The desktop candidate
+uses trusted MCP metadata and can resume existing task IDs after activation.
 
 ## Confirm activation
 

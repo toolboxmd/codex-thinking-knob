@@ -20,7 +20,8 @@ test('package versions agree and Project Record points to shipped facts', async 
   assert.equal(record.kind, 'agent-module');
   assert.deepEqual(pkg.dependencies ?? {}, {});
   assert.deepEqual(pkg.optionalDependencies ?? {}, {});
-  assert.equal(plugin.mcpServers, undefined);
+  assert.equal(plugin.mcpServers, './.mcp.json');
+  assert.equal((await json('.mcp.json')).mcpServers.thinking_knob.default_tools_approval_mode, 'approve');
   assert.equal(plugin.apps, undefined);
   const paths = [record.factSources.version, ...Object.values(record.factSources.delivery),
     ...record.factSources.skills, ...record.factSources.documentation,
@@ -33,7 +34,7 @@ test('packed artifact installs offline in an isolated prefix and contains only t
   t.after(() => rm(temporary, { recursive: true, force: true }));
   const pack = JSON.parse(execFileSync('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', temporary], { cwd: root, encoding: 'utf8' }))[0];
   const paths = pack.files.map(f => f.path);
-  for (const required of ['bin/codex-thinking-knob.mjs', 'src/bridge.mjs', '.codex-plugin/plugin.json',
+  for (const required of ['bin/codex-thinking-knob.mjs', 'src/bridge.mjs', '.codex-plugin/plugin.json', '.mcp.json', 'src/mcp.mjs', 'bin/thinking-knob-desktop', 'bin/thinking-knob-mcp.mjs', 'bin/launch-desktop.mjs',
     '.toolboxmd/project.json', 'skills/setup/SKILL.md', 'docs/runtime.md', 'VERSION']) assert.ok(paths.includes(required), required);
   assert.ok(paths.every(p => !/^(test|node_modules|\.git|\.github)\//.test(p)));
   const install = join(temporary, 'install');

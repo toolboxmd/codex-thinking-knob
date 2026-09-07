@@ -1,7 +1,7 @@
 # Mission
 
 Codex Thinking Knob makes adaptive reasoning practical for Astra users through
-a small, independently installable wrapper for Codex App Server. It gives the
-model bounded control over reasoning effort, respects the user's chosen
-policy, and reports changes with evidence, so users can evaluate work quality,
-time, and model usage within their existing tools.
+an independently installable Codex plugin and native App Server integration.
+It gives the model bounded control over reasoning effort in the desktop app
+and compatible clients, preserves existing conversations and user policy, and
+reports changes with evidence so users can evaluate quality, time, and usage.

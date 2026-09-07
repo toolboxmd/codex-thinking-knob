@@ -1,21 +1,20 @@
 ---
 name: setup
-description: Use when the user asks to configure or activate Codex Thinking Knob in a compatible Codex App Server client.
+description: Use when configuring or activating Codex Thinking Knob in the ChatGPT/Codex desktop app or another App Server client.
 ---
 
 # Set up Codex Thinking Knob
 
-Read the installed package's [installation guide](../../docs/install.md).
-Resolve the package root relative to this skill, then verify its launcher with
-`node <package-root>/bin/codex-thinking-knob.mjs --version`.
+Resolve this package root. For the desktop app, read [desktop activation](../../docs/desktop.md).
+For a custom client, read [installation](../../docs/install.md). Verify the installed
+version and the app's current bundled runtime. Preserve existing tasks and overrides.
 
-Identify the user's App Server client and its current launch configuration.
-When the client supports a configurable command, prepare the exact command
-and arguments using the installed launcher path and the verified Codex binary.
-Apply setup within the user's requested authority and verify a fresh connection.
-If the client lacks that launch surface, report the compatibility limitation.
+Use Astra low for routine implementation and bounded research, medium for local
+uncertainty, high for coupled design or difficult diagnosis, and max for unresolved
+problems whose consequences justify it. Lower effort after resolving that uncertainty.
+Delegate independent useful work to Astra low or medium when authorized. Use Luna
+max for an independent implementation review. Honor the user's fixed settings.
 
-Completion requires a working launcher connection, not merely an installed
-plugin. Keep native update acknowledgement separate from proof that a later
-model request used the setting. Installation affects only this module and its
-explicit client launch configuration.
+Completion requires the tool loaded in the intended conversation and evidence of
+subsequent inference effort. An accepted update alone is not execution proof.
+A desktop restart resumes the same conversation; it does not require replacing it.

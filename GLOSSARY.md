@@ -1,7 +1,7 @@
 # Glossary
 
-- **Codex Thinking Knob**: The independently installable ToolboxMD wrapper for
-  model-triggered Astra effort changes through Codex App Server.
+- **Codex Thinking Knob**: The independently installable ToolboxMD plugin and native
+  integration for model-triggered Astra effort changes through Codex App Server.
 - **Adaptive control**: Explicitly enabled permission for the model to request
   effort changes within an eligible active turn.
 - **Accepted update**: A native acknowledgement that settings were published

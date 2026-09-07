@@ -3,7 +3,8 @@
   "description": "A standalone Codex App Server wrapper for adaptive Astra reasoning effort.",
   "type": "module",
   "bin": {
-    "codex-thinking-knob": "bin/codex-thinking-knob.mjs"
+    "codex-thinking-knob": "bin/codex-thinking-knob.mjs",
+    "thinking-knob-desktop": "bin/launch-desktop.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -17,7 +18,8 @@
     "VERSION",
     "CHANGELOG.md",
     "README.md",
-    "docs/"
+    "docs/",
+    ".mcp.json"
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs",

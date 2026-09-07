@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "thinking_knob": {
+      "command": "node",
+      "args": [
+        "./bin/thinking-knob-mcp.mjs"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "KNOB_CONTROL_SOCKET",
+        "KNOB_CONTROL_TOKEN"
+      ],
+      "default_tools_approval_mode": "approve"
+    }
+  }
+}
