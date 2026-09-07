@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/toolboxmd/marketplace/v0.3.0/schemas/project-record-v1.schema.json",
+  "id": "codex-thinking-knob",
+  "kind": "agent-module",
+  "outcome": "Let Astra adjust reasoning effort within its active Codex App Server turn through an independently installed wrapper.",
+  "factSources": {
+    "version": "VERSION",
+    "delivery": {
+      "codex": ".codex-plugin/plugin.json",
+      "package": "package.json"
+    },
+    "skills": ["skills/setup/SKILL.md"],
+    "documentation": ["README.md", "docs/install.md", "docs/runtime.md"],
+    "requirements": ["package.json"],
+    "proof": ["docs/proof.md"]
+  }
+}

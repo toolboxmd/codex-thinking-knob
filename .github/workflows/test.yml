@@ -1,0 +1,21 @@
+name: test
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
+      - name: Install the pinned App Server for deterministic integration
+        run: npm install --prefix "$RUNNER_TEMP/codex" --no-package-lock --no-audit --no-fund @openai/codex@0.153.4
+      - name: Exercise the real App Server against a local fixture
+        run: KNOB_NATIVE_BINARY="$RUNNER_TEMP/codex/node_modules/.bin/codex" npm run test:native
+      - run: npm pack --ignore-scripts

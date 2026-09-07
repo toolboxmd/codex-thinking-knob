@@ -1,0 +1,24 @@
+{
+  "name": "codex-thinking-knob",
+  "description": "Give Astra bounded control over its reasoning effort through Codex App Server.",
+  "author": {
+    "name": "ToolboxMD",
+    "url": "https://github.com/toolboxmd"
+  },
+  "repository": "https://github.com/toolboxmd/codex-thinking-knob",
+  "homepage": "https://github.com/toolboxmd/codex-thinking-knob",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Thinking Knob",
+    "shortDescription": "Adaptive Astra effort for Codex App Server",
+    "longDescription": "A standalone App Server wrapper with explicit launcher setup. Independently installable; no other ToolboxMD modules required.",
+    "developerName": "ToolboxMD",
+    "category": "Developer Tools",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://github.com/toolboxmd/codex-thinking-knob",
+    "defaultPrompt": [
+      "Help me connect Thinking Knob to my App Server client."
+    ]
+  },
+  "version": "0.1.0"
+}
