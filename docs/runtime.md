@@ -1,5 +1,8 @@
 # Runtime contract
 
+This page describes the legacy stdio launcher. The native desktop adapter has
+a separate [activation and policy contract](desktop.md).
+
 One launcher owns one stdio App Server process. The runtime depends only on
 Node.js built-ins and the caller's Codex executable. Transport messages use
 newline-delimited JSON. Invalid JSON terminates the connection with a diagnostic

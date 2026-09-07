@@ -1,9 +1,10 @@
 {
   "name": "@toolboxmd/codex-thinking-knob",
-  "description": "A standalone Codex App Server wrapper for adaptive Astra reasoning effort.",
+  "description": "A Codex plugin and native desktop adapter for adaptive Astra reasoning effort.",
   "type": "module",
   "bin": {
-    "codex-thinking-knob": "bin/codex-thinking-knob.mjs"
+    "codex-thinking-knob": "bin/codex-thinking-knob.mjs",
+    "thinking-knob-desktop": "bin/launch-desktop.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -17,7 +18,8 @@
     "VERSION",
     "CHANGELOG.md",
     "README.md",
-    "docs/"
+    "docs/",
+    ".mcp.json"
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs",
@@ -30,5 +32,5 @@
   "homepage": "https://github.com/toolboxmd/codex-thinking-knob",
   "author": "ToolboxMD",
   "private": true,
-  "version": "0.1.1"
+  "version": "0.2.0"
 }

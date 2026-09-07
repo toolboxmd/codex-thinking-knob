@@ -1,14 +1,16 @@
 # Codex Thinking Knob development
 
-The root direction files own this Project's approved strategy. Issue #1 owns
-the initial implementation. Keep the canonical default branch as the
+The root direction files own this Project's approved strategy. Issue #5 owns
+the native desktop integration. Keep the canonical default branch as the
 coordination checkout and give each implementation Issue an exclusive branch
 and workspace.
 
 - Runtime: `src/bridge.mjs` owns protocol and effort policy;
   `bin/codex-thinking-knob.mjs` owns process and stream lifecycle.
-- Keep the installed runtime dependency-free. Plugin setup, launch and release
-  are separate states; the wrapper does not attach to existing desktop tasks.
+- Keep the installed runtime dependency-free. Plugin setup, desktop launch,
+  resumed-task activation and verified inference are separate states.
+- `src/desktop-bridge.mjs` owns desktop state and policy; `src/mcp.mjs` binds
+  trusted MCP caller metadata. Preserve the bundled signed native executable.
 - `npm test` is the deterministic package gate. With `KNOB_NATIVE_BINARY` set
   to Codex 0.153.4, it also exercises the real App Server against a local fixture.
   A skipped native test is not native proof or behavioral Live Verification.
