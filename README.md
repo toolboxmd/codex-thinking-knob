@@ -77,7 +77,7 @@ including Luna review tasks, retain their own settings. See the precise
 
 ## Installation and distribution
 
-Download the versioned package and checksum from
+When a release is published, download its versioned package and checksum from
 [GitHub Releases](https://github.com/toolboxmd/codex-thinking-knob/releases).
 The Marketplace selector is `codex-thinking-knob@toolboxmd` when listed in the
 [ToolboxMD catalog](https://github.com/toolboxmd/marketplace). Release publication

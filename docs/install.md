@@ -7,7 +7,8 @@ not copy or provision credentials.
 ## Direct package
 
 Open [the release page](https://github.com/toolboxmd/codex-thinking-knob/releases)
-and choose an exact version. Download its `toolboxmd-codex-thinking-knob-VERSION.tgz`
+and choose an exact published version. If no release is available, public artifact
+installation is not available yet. Download its `toolboxmd-codex-thinking-knob-VERSION.tgz`
 and `SHA256SUMS` assets into an empty directory. Verify the checksum before
 extracting the package. For version 0.1.1:
 

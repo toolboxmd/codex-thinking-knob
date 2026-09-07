@@ -14,6 +14,12 @@ The wrapper correctly keeps `executionVerified: false` in normal tool results.
 The native fixture's separate observer supplies execution evidence only for
 that test. An accepted update is not evidence that a later inference happened.
 
+Real-Astra observations are recorded in the exact version's
+[release notes](https://github.com/toolboxmd/codex-thinking-knob/releases),
+separately from this deterministic gate. Until those notes include request-level
+evidence, real-Astra execution is not established for that release. This
+repository gate alone does not supply it.
+
 Before publication:
 
 - Review the exact implementation SHA with Luna at max, address findings and
