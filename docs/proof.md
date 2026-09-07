@@ -14,6 +14,12 @@ The wrapper correctly keeps `executionVerified: false` in normal tool results.
 The native fixture's separate observer supplies execution evidence only for
 that test. An accepted update is not evidence that a later inference happened.
 
+Real-Astra observations are recorded in the exact version's
+[release notes](https://github.com/toolboxmd/codex-thinking-knob/releases),
+separately from this deterministic gate. Until those notes include request-level
+evidence, real-Astra execution is not established for that release. This
+repository gate alone does not supply it.
+
 Before publication:
 
 - Review the exact implementation SHA with Luna at max, address findings and
@@ -31,10 +37,11 @@ The Project Record is `.toolboxmd/project.json`. It indexes this repository's
 authoritative files; Marketplace supplies release provenance. Existing
 Toolybara promotion for AgentsMD is not assumed to cover this module.
 
-Website impact is narrative: this README, installation documentation and future
+Website impact is narrative: this README, installation documentation and the
 Marketplace listing describe the capability and compatibility. No existing
-public URLs change in this implementation. Publication-state wording must be
-updated only after the corresponding release or listing exists.
+public URLs change. Release assets and the Marketplace catalog are the
+authoritative publication state; documentation links to them without treating
+a prepared package as a published one.
 
 The X launch follows a usable public installation path. A capability demo must
 be distinguished from an efficiency comparison. Any savings claim needs a

@@ -14,11 +14,14 @@
     "longDescription": "A standalone App Server wrapper with explicit launcher setup. Independently installable; no other ToolboxMD modules required.",
     "developerName": "ToolboxMD",
     "category": "Developer Tools",
-    "capabilities": ["Read", "Write"],
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
     "websiteURL": "https://github.com/toolboxmd/codex-thinking-knob",
     "defaultPrompt": [
       "Help me connect Thinking Knob to my App Server client."
     ]
   },
-  "version": "0.1.0"
+  "version": "0.1.1"
 }
