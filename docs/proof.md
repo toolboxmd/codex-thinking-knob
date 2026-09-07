@@ -31,10 +31,11 @@ The Project Record is `.toolboxmd/project.json`. It indexes this repository's
 authoritative files; Marketplace supplies release provenance. Existing
 Toolybara promotion for AgentsMD is not assumed to cover this module.
 
-Website impact is narrative: this README, installation documentation and future
+Website impact is narrative: this README, installation documentation and the
 Marketplace listing describe the capability and compatibility. No existing
-public URLs change in this implementation. Publication-state wording must be
-updated only after the corresponding release or listing exists.
+public URLs change. Release assets and the Marketplace catalog are the
+authoritative publication state; documentation links to them without treating
+a prepared package as a published one.
 
 The X launch follows a usable public installation path. A capability demo must
 be distinguished from an efficiency comparison. Any savings claim needs a

@@ -25,7 +25,8 @@ Your client still owns its tasks, credentials, permissions and ordinary tools.
   enabling adaptive control, since its identity has not been established.
 - Installing this plugin alone does not connect an unmodified Codex desktop
   application to the wrapper. A client with configurable App Server launch is
-  required.
+  required. Existing desktop tasks cannot be attached to this wrapper or
+  switched to adaptive control by installing the plugin.
 
 ## Run from a checkout or extracted artifact
 
@@ -76,9 +77,12 @@ including Luna review tasks, retain their own settings. See the precise
 
 ## Installation and distribution
 
-The proposed Marketplace selector is `codex-thinking-knob@toolboxmd`.
-This implementation branch is a release candidate. A Marketplace listing and
-published release artifact are not yet available.
+Download the versioned package and checksum from
+[GitHub Releases](https://github.com/toolboxmd/codex-thinking-knob/releases).
+The Marketplace selector is `codex-thinking-knob@toolboxmd` when listed in the
+[ToolboxMD catalog](https://github.com/toolboxmd/marketplace). Release publication
+and Marketplace listing are separate steps; check the catalog before installing
+through the plugin manager.
 
 The [installation guide](docs/install.md) describes independent package
 installation, explicit launcher setup and removal. The same package files
