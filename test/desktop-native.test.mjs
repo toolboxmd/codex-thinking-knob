@@ -128,7 +128,7 @@ stream_max_retries = 0
   }
   adapting = true; requests.length = 0;
   child = spawn(process.execPath, [launcher, '-c', 'features.code_mode_host=true', 'app-server', '--analytics-default-enabled'], {
-    cwd, env: { ...process.env, KNOB_NATIVE_BINARY: binary, CODEX_HOME: home }, stdio: ['pipe', 'pipe', 'pipe'], detached: true,
+    cwd, env: { ...process.env, KNOB_NATIVE_BINARY: binary, KNOB_ADAPTIVE_THREAD: existing.result.thread.id, CODEX_HOME: home }, stdio: ['pipe', 'pipe', 'pipe'], detached: true,
   });
   childClosed = new Promise(resolve => child.once('close', resolve));
   let stderr = '';

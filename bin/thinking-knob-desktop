@@ -7,4 +7,5 @@ if [ ! -x "$node_binary" ]; then
   printf '%s\n' 'Thinking Knob requires the app-bundled signed Node runtime.' >&2
   exit 1
 fi
+export KNOB_NATIVE_BINARY=/Applications/ChatGPT.app/Contents/Resources/codex
 exec "$node_binary" "$(dirname "$0")/codex-thinking-knob-desktop.mjs" "$@"

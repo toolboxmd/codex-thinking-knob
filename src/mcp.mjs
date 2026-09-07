@@ -1,5 +1,4 @@
 import net from 'node:net';
-import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 const version = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
@@ -21,7 +20,7 @@ export function requestFromCall(params, token) {
   const meta = params._meta;
   const turn = meta?.['x-codex-turn-metadata'];
   if (!object(meta) || !object(turn) || !identity(meta.threadId) || !identity(turn.thread_id) || !identity(turn.turn_id) || meta.threadId !== turn.thread_id) throw new Error('Missing or inconsistent trusted Codex call identity');
-  return { token, threadId: meta.threadId, turnId: turn.turn_id, callId: randomUUID(), effort: args.effort, ...(args.reason === undefined ? {} : { reason: args.reason }) };
+  return { token, threadId: meta.threadId, turnId: turn.turn_id, effort: args.effort, ...(args.reason === undefined ? {} : { reason: args.reason }) };
 }
 
 export function sendControl(request, { socketPath, timeoutMs = 12_000 } = {}) {

@@ -5,7 +5,7 @@ const astra = model => model === 'gpt-6-astra';
 const result = (status, extra = {}) => ({ status, executionVerified: false, ...extra });
 
 /** One desktop connection, including resumed tasks. Never inject user messages. */
-export function createDesktopBridge({ toChild, toClient, timeoutMs = 10_000, allowedThreads = null }) {
+export function createDesktopBridge({ toChild, toClient, timeoutMs = 10_000, allowedThread = null }) {
   let sequence = 0, initialized = false, closed = false;
   const pending = new Map(), threads = new Map();
   const nextId = () => `thinking-knob-desktop:${++sequence}`;
@@ -100,7 +100,7 @@ export function createDesktopBridge({ toChild, toClient, timeoutMs = 10_000, all
     if (!EFFORTS.includes(effort) || (reason !== undefined && (typeof reason !== 'string' || reason.length > 500))) return Promise.resolve(result('invalidArguments'));
     const t = threads.get(threadId);
     if (closed || !initialized || !t || !astra(t.model) || t.active !== turnId || !turnId
-      || (allowedThreads && !allowedThreads.has(threadId))) return Promise.resolve(result('targetUnavailable'));
+      || threadId !== allowedThread) return Promise.resolve(result('targetUnavailable'));
     if (t.locked) return Promise.resolve(result('fixedPolicy', { detail: 'An explicit desktop settings change takes precedence until the adapter restarts.' }));
     return new Promise(resolve => {
       const id = nextId();

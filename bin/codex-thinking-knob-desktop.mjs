@@ -16,19 +16,14 @@ const commandAfter = index < 0 ? null : args[index + 1];
 const isServer = index >= 0 && (!commandAfter || commandAfter.startsWith('-')) && !args.some(a => ['--help', '-h', '--version'].includes(a));
 if (!isServer) {
   // execve keeps signed CLI ancestry intact for native helper commands.
-  if (process.execve) process.execve(binary, [binary, ...args], process.env);
-  else {
-    const child = spawn(binary, args, { stdio: 'inherit' });
-    child.on('error', () => { process.exitCode = 1; });
-    for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
-    child.on('exit', (code, signal) => { process.exitCode = code ?? (signal ? 1 : 0); });
-  }
+  if (!process.execve) throw new Error('The app-bundled runtime must support execve');
+  process.execve(binary, [binary, ...args], process.env);
 } else {
   if (args.some(a => a === '--listen' || a.startsWith('--listen='))) throw new Error('Desktop activation requires its stdio transport');
-  let child, stopping = false, force;
+  let child, stopping = false;
   const inputs = [];
   const bridge = createDesktopBridge({
-    allowedThreads: process.env.KNOB_ADAPTIVE_THREADS ? new Set(process.env.KNOB_ADAPTIVE_THREADS.split(',')) : null,
+    allowedThread: process.env.KNOB_ADAPTIVE_THREAD ?? null,
     toChild: m => send(child.stdin, m), toClient: m => send(process.stdout, m),
   });
   const control = await createControl(bridge.setEffort);
@@ -53,7 +48,7 @@ if (!isServer) {
     process.stdin.pause(); child.stdin.destroy(); signalNative('SIGTERM');
     // Keep this timer alive even when a descendant ignores SIGTERM and has
     // detached its streams. Otherwise Node could exit before reaping the group.
-    force = setTimeout(() => signalNative('SIGKILL'), 1000);
+    setTimeout(() => signalNative('SIGKILL'), 1000);
     await control.close();
   }
   function read(stream, receive) {

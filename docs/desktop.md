@@ -18,8 +18,8 @@ global instructions, account credentials, or persistent service is modified.
 
 The adapter uses the app-bundled signed Node runtime. The native authorizer
 checks the tool process and its two ancestors; using a system Node for the
-adapter breaks that trusted chain. The shim does not accept a Node override or
-fall back to PATH. Signing and native peer authorization remain unchanged.
+adapter breaks that trusted chain. The public shim pins both bundled executables and does not accept a runtime
+override or fall back to PATH. Signing and native peer authorization remain unchanged.
 
 ## Activation
 
@@ -32,8 +32,8 @@ node /absolute/plugin/root/bin/launch-desktop.mjs --thread EXISTING_TASK_UUID
 
 Use `--dry-run` to inspect the command first. Quit the app, then run the command
 from Terminal. The launcher refuses to silently reuse an already-running app.
-Resume the same conversation. Omitting `--thread` opts in all eligible Astra
-tasks in that app connection. A scoped launch is recommended for acceptance.
+Resume the same conversation. `--thread` is required and selects exactly one
+task. Other tasks cannot request effort changes through the control tool.
 Installation alone cannot change an already-open stdio connection.
 
 The native default path is `/Applications/ChatGPT.app/Contents/Resources/codex`.
@@ -50,7 +50,7 @@ automatically reactivate the candidate.
 The `thinking_knob.set_effort` MCP tool accepts effort and an optional reason.
 Codex supplies task and turn identities in trusted call metadata. Missing or
 inconsistent identities fail. The adapter also checks the active turn, current
-Astra model, optional task allowlist and fixed policy before calling the native
+Astra model, selected task ID and fixed policy before calling the native
 `turn/settings/update` operation. It never submits a user message or changes
 the selected model.
 

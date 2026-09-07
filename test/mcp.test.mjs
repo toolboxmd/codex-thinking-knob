@@ -62,7 +62,7 @@ test('MCP stdio initialization, discovery, and trusted socket control', { timeou
   assert.equal(observed.threadId, 'thread-1');
   assert.equal(observed.turnId, 'turn-1');
   assert.equal(observed.token, 'private-token');
-  assert.match(observed.callId, /^[a-f0-9-]{36}$/);
+  assert.deepEqual(Object.keys(observed).sort(), ['effort', 'reason', 'threadId', 'token', 'turnId']);
 });
 
 test('identity cannot come from arguments or inconsistent metadata', () => {

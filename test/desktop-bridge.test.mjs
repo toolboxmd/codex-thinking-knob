@@ -7,7 +7,7 @@ import { stat, access } from 'node:fs/promises';
 
 function setup(options = {}) {
   const child = [], client = [];
-  const b = createDesktopBridge({ toChild: m => child.push(m), toClient: m => client.push(m), ...options });
+  const b = createDesktopBridge({ allowedThread: 'a', toChild: m => child.push(m), toClient: m => client.push(m), ...options });
   function rpc(method, params, result) {
     b.client({ id: 1, method, params });
     const request = child.at(-1);
@@ -39,8 +39,8 @@ test('resumed task adapts despite initial UI effort and keeps client IDs and cal
   b.close();
 });
 
-test('rejects other turns, non-Astra tasks, allowlist misses, and completed turns', async () => {
-  const { b, start } = setup({ allowedThreads: new Set(['a']) });
+test('rejects other turns, non-Astra tasks, unselected tasks, and completed turns', async () => {
+  const { b, start } = setup({ allowedThread: 'a' });
   start('b'); start('c', 'gpt-5.6-luna');
   for (const r of [{ ...request, turnId: 'old' }, { threadId: 'b', turnId: 'b-turn', effort: 'high' }, { threadId: 'c', turnId: 'c-turn', effort: 'high' }]) {
     assert.equal((await b.setEffort(r)).status, 'targetUnavailable');
@@ -49,14 +49,12 @@ test('rejects other turns, non-Astra tasks, allowlist misses, and completed turn
   assert.equal((await b.setEffort(request)).status, 'targetUnavailable'); b.close();
 });
 
-test('explicit desktop setting locks only that task and survives resume', async () => {
-  const { b, start, child } = setup(); start('b');
+test('explicit desktop setting locks the selected task and survives resume', async () => {
+  const { b, start } = setup(); start('b');
   b.client({ id: 'manual', method: 'turn/settings/update', params: { threadId: 'a', effort: 'high' } });
   assert.equal((await b.setEffort(request)).status, 'fixedPolicy');
   start(); assert.equal((await b.setEffort(request)).status, 'fixedPolicy');
-  const other = b.setEffort({ threadId: 'b', turnId: 'b-turn', effort: 'medium' });
-  b.server({ id: child.at(-1).id, result: { status: 'applied' } });
-  assert.equal((await other).status, 'applied'); b.close();
+  assert.equal((await b.setEffort({ threadId: 'b', turnId: 'b-turn', effort: 'medium' })).status, 'targetUnavailable'); b.close();
 });
 
 test('timeout and disconnect never claim success; late replies do not reach desktop', async () => {
@@ -140,4 +138,18 @@ setTimeout(()=>process.exit(0),100);
   const { readFile } = await import('node:fs/promises');
   const pid = Number(await readFile(pidFile, 'utf8'));
   assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+});
+
+test('missing task opt-in keeps control disabled while protocol remains available', async () => {
+  const { b, client } = setup({ allowedThread: null });
+  assert.ok(client.length > 0);
+  assert.equal((await b.setEffort(request)).status, 'targetUnavailable');
+  b.close();
+});
+
+test('the selected task cannot adapt after switching to Luna', async () => {
+  const { b, start } = setup();
+  start('a', 'gpt-5.6-luna');
+  assert.equal((await b.setEffort(request)).status, 'targetUnavailable');
+  b.close();
 });

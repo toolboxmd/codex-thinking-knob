@@ -47,3 +47,10 @@ test('packed artifact installs offline in an isolated prefix and contains only t
   assert.equal(execFileSync(process.execPath, [join(installed, 'bin/codex-thinking-knob.mjs'), '--version'], { encoding: 'utf8' }).trim(), version);
   assert.match(execFileSync(join(install, 'node_modules/.bin/codex-thinking-knob'), ['--help'], { encoding: 'utf8' }), /Usage:/);
 });
+
+test('desktop launcher requires exactly shaped task opt-in before inspecting the app', () => {
+  const launcher = join(root, 'bin/launch-desktop.mjs');
+  for (const args of [[], ['--dry-run'], ['--thread', '-'.repeat(36)]]) {
+    assert.throws(() => execFileSync(process.execPath, [launcher, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }), error => /required|Invalid launcher argument/.test(error.stderr));
+  }
+});

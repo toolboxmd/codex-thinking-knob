@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.0] - 2026-09-07
+
+### Added
+
+- Add experimental native desktop effort control with explicit single-task scope and signed runtime ancestry
+
 ## [0.1.1] - 2026-09-07
 
 ### Changed
