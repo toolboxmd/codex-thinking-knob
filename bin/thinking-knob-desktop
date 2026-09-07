@@ -1,4 +1,10 @@
 #!/bin/sh
 set -eu
-node_binary="${KNOB_NODE_BINARY:-node}"
+# The native app authorizes the MCP peer and its two ancestors. An arbitrary
+# Node from PATH breaks that chain even when the Codex child is signed.
+node_binary=/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node
+if [ ! -x "$node_binary" ]; then
+  printf '%s\n' 'Thinking Knob requires the app-bundled signed Node runtime.' >&2
+  exit 1
+fi
 exec "$node_binary" "$(dirname "$0")/codex-thinking-knob-desktop.mjs" "$@"

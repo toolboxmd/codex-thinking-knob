@@ -17,12 +17,13 @@ for (let i = 0; i < args.length; i++) {
 if (process.platform !== 'darwin') throw new Error('Desktop launch is currently verified only on macOS');
 const application = '/Applications/ChatGPT.app';
 const native = `${application}/Contents/Resources/codex`;
+const bundledNode = `${application}/Contents/Resources/cua_node/bin/node`;
 const adapter = fileURLToPath(new URL('./thinking-knob-desktop', import.meta.url));
-accessSync(native, constants.X_OK); accessSync(adapter, constants.X_OK);
+accessSync(native, constants.X_OK); accessSync(bundledNode, constants.X_OK); accessSync(adapter, constants.X_OK);
 if (process.env.CODEX_CLI_PATH && process.env.CODEX_CLI_PATH !== native && process.env.CODEX_CLI_PATH !== adapter) {
   throw new Error('An existing CODEX_CLI_PATH override must be reconciled before activation');
 }
-const command = ['/usr/bin/open', '--env', `CODEX_CLI_PATH=${adapter}`, '--env', `KNOB_NODE_BINARY=${process.execPath}`,
+const command = ['/usr/bin/open', '--env', `CODEX_CLI_PATH=${adapter}`,
   '--env', `KNOB_ADAPTIVE_THREADS=${thread ?? ''}`, application];
 const running = execFileSync('/bin/ps', ['-axo', 'comm='], { encoding: 'utf8' }).split('\n')
   .some(line => line.trim().startsWith(`${application}/Contents/MacOS/`));

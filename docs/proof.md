@@ -58,3 +58,21 @@ effort changes. Exercise native app and browser tools with their authorization
 intact. Test restart/removal against the same conversation. The local native
 provider fixture and isolated app startup are supporting proof, not this
 behavioral acceptance. Keep publication and X launch on hold until it passes.
+
+Run desktop acceptance only in a disposable macOS VM or an explicitly isolated
+test Mac. A separate `CODEX_HOME` alone does not isolate the desktop's UI state,
+IPC and native authorization. Never use a working host's App Server, credentials
+or original task data as the candidate test environment.
+
+The native authorization regression additionally requires the unmodified
+desktop resources in that isolated environment:
+
+```sh
+KNOB_DESKTOP_RESOURCES=/Applications/ChatGPT.app/Contents/Resources \
+  node --test test/desktop-authorization.test.mjs
+```
+
+This checks the real native peer authorizer against the packaged desktop shim,
+a fixture-owned MCP pipe and a loopback provider. It proves authorization at
+that seam, not full desktop behavior. The fixture starts its own App Servers
+with fresh profiles and an explicit environment; it never attaches to the app.

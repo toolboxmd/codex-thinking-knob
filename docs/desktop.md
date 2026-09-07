@@ -4,6 +4,11 @@ Issue #5 develops native integration for the ordinary ChatGPT/Codex desktop app.
 This candidate is not released or X-ready. The published 0.1.1 package supplies
 the earlier stdio launcher and does not include these files.
 
+The first native candidate was withdrawn after it broke native tool
+authorization. Do not activate a candidate in a working desktop installation.
+Desktop acceptance currently belongs in a disposable macOS VM on the authorized
+Rocky test host, with separate app state, credentials and task history.
+
 The candidate uses the existing app's `CODEX_CLI_PATH` executable override.
 `bin/thinking-knob-desktop` forwards normal CLI commands to the bundled signed
 Codex executable. For App Server it runs a transparent stdio adapter, enables
@@ -11,10 +16,15 @@ Codex executable. For App Server it runs a transparent stdio adapter, enables
 The plugin MCP server inherits that socket and its random token. No app bundle,
 global instructions, account credentials, or persistent service is modified.
 
+The adapter uses the app-bundled signed Node runtime. The native authorizer
+checks the tool process and its two ancestors; using a system Node for the
+adapter breaks that trusted chain. The shim does not accept a Node override or
+fall back to PATH. Signing and native peer authorization remain unchanged.
+
 ## Activation
 
 Install a verified candidate plugin containing `.mcp.json`. Keep its exact root.
-The desktop launch command is:
+Inside the disposable desktop test environment, the launch command is:
 
 ```sh
 node /absolute/plugin/root/bin/launch-desktop.mjs --thread EXISTING_TASK_UUID
@@ -63,10 +73,11 @@ and sends subsequent provider requests at low, high, then low. This is a
 deterministic local-provider test, not an Astra inference or savings claim.
 
 The desktop executable override was separately observed launching the actual
-unmodified app. Actual desktop inference, native app/browser compatibility
-with the long-lived adapter, and this user's existing conversation remain
-required before release or X launch. Native `applied` reports acceptance with
-`executionVerified: false` until later request evidence exists.
+unmodified app. Actual desktop inference, native app/browser compatibility,
+work continuing across multiple tool calls, and completed and interrupted task
+history surviving restart remain required before release or X launch. Native
+`applied` reports acceptance with `executionVerified: false` until later request
+evidence exists.
 
 Computer Use intentionally refuses to automate Codex's own UI. This is an
 activation handoff boundary, not a reason to bypass native authorization.
