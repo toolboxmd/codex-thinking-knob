@@ -75,7 +75,7 @@ CODEX_APP_TOOLS_PIPE_PATH = "${socketPath}"
 `);
   const command = name === 'native' ? native : entrypoint;
   const args = ['app-server'];
-  const child = spawn(command,args,{cwd:dir,env:{PATH:process.env.KNOB_TEST_PATH ?? '/usr/bin:/bin',CODEX_HOME:dir,CODEX_SQLITE_HOME:dir,KNOB_NATIVE_BINARY:native},stdio:['pipe','pipe','pipe'],detached:true});
+  const child = spawn(command,args,{cwd:dir,env:{PATH:'/usr/bin:/bin',CODEX_HOME:dir,CODEX_SQLITE_HOME:dir,KNOB_NATIVE_BINARY:native},stdio:['pipe','pipe','pipe'],detached:true});
   const closed = new Promise(resolve => child.once('close',resolve));
   let stderr='', sequence=0; const pending = new Map(), events=[];
   child.stderr.on('data', chunk => {stderr += chunk;});

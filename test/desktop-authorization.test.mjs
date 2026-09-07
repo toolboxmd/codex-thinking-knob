@@ -20,8 +20,7 @@ test('desktop entrypoint preserves real native MCP peer authorization', {
     fileURLToPath(new URL('./fixtures/desktop-authorization.mjs', import.meta.url)),
   ], {
     env: { PATH: '/usr/bin:/bin', KNOB_DESKTOP_RESOURCES: resources,
-      KNOB_TEST_ROOT: temporary,
-      KNOB_TEST_PATH: process.env.KNOB_TEST_PATH ?? '/usr/bin:/bin' },
+      KNOB_TEST_ROOT: temporary },
     encoding: 'utf8', timeout: 50000,
   });
   const cases = output.trim().split('\n').map(line => JSON.parse(line));
