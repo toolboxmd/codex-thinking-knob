@@ -31,6 +31,7 @@ export function createDesktopBridge({ toChild, toClient, timeoutMs = 10_000, all
       // Desktop sends its initial UI effort on every turn. Activation opts into
       // adaptation after that initial capture; explicit settings updates lock it.
       t.model = p.collaborationMode?.settings?.model ?? p.model ?? t.model;
+      t.effort = p.collaborationMode?.settings?.reasoning_effort ?? p.effort ?? t.effort;
       t.start = nextId();
       context = { kind: 'turn', threadId: p.threadId, token: t.start };
     } else if (['turn/settings/update', 'thread/settings/update'].includes(m.method) && t) {
@@ -38,7 +39,9 @@ export function createDesktopBridge({ toChild, toClient, timeoutMs = 10_000, all
         t.locked = true;
         if (p.model != null) t.model = p.model;
       }
-    } else if (['turn/interrupt', 'thread/unload', 'thread/archive'].includes(m.method)) {
+    } else if (m.method === 'turn/interrupt') {
+      if (!p.turnId || t?.active === p.turnId) invalidate(t);
+    } else if (['thread/unload', 'thread/archive'].includes(m.method)) {
       invalidate(t);
     }
     if (m.method && hasId(m)) {
@@ -72,7 +75,7 @@ export function createDesktopBridge({ toChild, toClient, timeoutMs = 10_000, all
       if (!m.error && c?.kind === 'thread' && typeof m.result?.thread?.id === 'string') {
         const thread = m.result.thread;
         const active = thread.turns?.findLast(turn => turn.status === 'inProgress');
-        threads.set(thread.id, { model: m.result.model, locked: c.previous?.locked ?? false,
+        threads.set(thread.id, { model: m.result.model, effort: m.result.reasoningEffort, locked: c.previous?.locked ?? false,
           active: active?.id ?? null, start: null });
       }
       if (c?.kind === 'turn') {
@@ -89,8 +92,10 @@ export function createDesktopBridge({ toChild, toClient, timeoutMs = 10_000, all
     if (m.method === 'turn/started' && t?.start && typeof p.turn?.id === 'string') t.active = p.turn.id;
     if (m.method === 'turn/completed' && t?.active === p.turn?.id) invalidate(t);
     if (m.method === 'model/rerouted' && t) { t.model = p.toModel; t.locked = true; }
-    if (m.method === 'thread/settings/updated' && t && p.threadSettings?.model !== t.model) {
-      t.model = p.threadSettings?.model; t.locked = true;
+    if (m.method === 'thread/settings/updated' && t) {
+      const settings = p.threadSettings;
+      if (!settings || settings.model !== t.model || settings.effort !== t.effort) t.locked = true;
+      if (settings) { t.model = settings.model; t.effort = settings.effort; }
     }
     if (['thread/closed', 'thread/deleted', 'thread/archived'].includes(m.method)) threads.delete(p.threadId);
     toClient(m);

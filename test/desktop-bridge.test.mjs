@@ -153,3 +153,26 @@ test('the selected task cannot adapt after switching to Luna', async () => {
   assert.equal((await b.setEffort(request)).status, 'targetUnavailable');
   b.close();
 });
+
+test('same-model native effort notification respects explicit user settings', async () => {
+  const { b, child } = setup();
+  b.server({ method: 'thread/settings/updated', params: { threadId: 'a', threadSettings: { model: 'gpt-6-astra', effort: 'max' } } });
+  const unchanged = b.setEffort(request);
+  b.server({ id: child.at(-1).id, result: { status: 'applied' } });
+  assert.equal((await unchanged).status, 'applied');
+  b.server({ method: 'thread/settings/updated', params: { threadId: 'a', threadSettings: { model: 'gpt-6-astra', effort: 'medium' } } });
+  assert.equal((await b.setEffort(request)).status, 'fixedPolicy');
+  b.close();
+});
+
+test('stale interrupt cannot disable a newer active turn', async () => {
+  const { b, child, rpc } = setup();
+  rpc('turn/start', { threadId: 'a' }, { turn: { id: 'new-turn' } });
+  b.client({ id: 'interrupt-old', method: 'turn/interrupt', params: { threadId: 'a', turnId: 'a-turn' } });
+  const change = b.setEffort({ ...request, turnId: 'new-turn' });
+  b.server({ id: child.at(-1).id, result: { status: 'applied' } });
+  assert.equal((await change).status, 'applied');
+  b.client({ id: 'interrupt-current', method: 'turn/interrupt', params: { threadId: 'a', turnId: 'new-turn' } });
+  assert.equal((await b.setEffort({ ...request, turnId: 'new-turn' })).status, 'targetUnavailable');
+  b.close();
+});
