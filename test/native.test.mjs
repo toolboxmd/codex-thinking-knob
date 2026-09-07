@@ -17,12 +17,32 @@ test('real App Server captures effort changes on subsequent provider requests', 
 }, async t => {
   assert.match(execFileSync(binary, ['--version'], { encoding: 'utf8' }), /0\.153\.4\b/);
   const dir = await mkdtemp(join(tmpdir(), 'thinking-knob-native-'));
-  t.after(() => rm(dir, { recursive: true, force: true }));
+  let child;
+  let server;
+  let childClosed = Promise.resolve();
+  // Stop every fixture-owned process before deleting its writable profile.
+  // A single hook also cleans up when an assertion or an earlier setup step fails.
+  t.after(async () => {
+    if (child?.pid) {
+      const signalGroup = signal => {
+        try { process.kill(-child.pid, signal); }
+        catch (error) { if (error.code !== 'ESRCH') throw error; }
+      };
+      signalGroup('SIGTERM');
+      const force = setTimeout(() => signalGroup('SIGKILL'), 3000);
+      try { await childClosed; } finally { clearTimeout(force); }
+    }
+    if (server?.listening) {
+      server.closeAllConnections();
+      await new Promise(resolve => server.close(resolve));
+    }
+    await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  });
   const home = join(dir, 'codex');
   const cwd = join(dir, 'work');
   await mkdir(home); await mkdir(cwd);
   const requests = [];
-  const server = createServer(async (req, res) => {
+  server = createServer(async (req, res) => {
     if (req.method !== 'POST' || req.url !== '/responses') {
       res.writeHead(404); res.end(); return;
     }
@@ -47,7 +67,6 @@ test('real App Server captures effort changes on subsequent provider requests', 
     res.end();
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(() => { server.closeAllConnections(); server.close(); });
   await writeFile(join(home, 'config.toml'), `model = "gpt-6-astra"
 model_provider = "fixture"
 model_reasoning_effort = "low"
@@ -62,16 +81,10 @@ supports_websockets = false
 request_max_retries = 0
 stream_max_retries = 0
 `);
-  const child = spawn(process.execPath, [launcher, '--adaptive', '--', binary, '--enable', 'step_model_switching', 'app-server'], {
-    cwd, env: { ...process.env, CODEX_HOME: home }, stdio: ['pipe', 'pipe', 'pipe'],
+  child = spawn(process.execPath, [launcher, '--adaptive', '--', binary, '--enable', 'step_model_switching', 'app-server'], {
+    cwd, env: { ...process.env, CODEX_HOME: home }, stdio: ['pipe', 'pipe', 'pipe'], detached: true,
   });
-  t.after(async () => {
-    if (child.exitCode !== null || child.signalCode !== null) return;
-    const exit = new Promise(resolve => child.once('exit', resolve));
-    child.kill('SIGTERM');
-    const force = setTimeout(() => child.kill('SIGKILL'), 3000);
-    await exit; clearTimeout(force);
-  });
+  childClosed = new Promise(resolve => child.once('close', resolve));
   let stderr = '';
   child.stderr.on('data', chunk => { stderr += chunk; });
   const pending = new Map();
