@@ -51,7 +51,9 @@ if (!isServer) {
     stopping = true; process.exitCode = code; bridge.close();
     for (const input of inputs) input.close();
     process.stdin.pause(); child.stdin.destroy(); signalNative('SIGTERM');
-    force = setTimeout(() => signalNative('SIGKILL'), 1000); force.unref();
+    // Keep this timer alive even when a descendant ignores SIGTERM and has
+    // detached its streams. Otherwise Node could exit before reaping the group.
+    force = setTimeout(() => signalNative('SIGKILL'), 1000);
     await control.close();
   }
   function read(stream, receive) {

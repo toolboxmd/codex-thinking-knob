@@ -108,3 +108,36 @@ setTimeout(()=>process.exit(0),100);
     child.once('close', code => { clearTimeout(timer); assert.equal(code, 0); resolve(); });
   });
 });
+
+test('desktop adapter reaps native descendants with ignored streams', { timeout: 5000 }, async t => {
+  const { spawn } = await import('node:child_process');
+  const { mkdtemp, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const dir = await mkdtemp(join(tmpdir(), 'knob-shutdown-'));
+  const fake = join(dir, 'codex');
+  const pidFile = join(dir, 'descendant.pid');
+  await writeFile(fake, `#!${process.execPath}
+const {spawn}=require('node:child_process');
+const helper=spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],{stdio:'ignore'});
+require('node:fs').writeFileSync(${JSON.stringify(pidFile)}, String(helper.pid));
+setTimeout(()=>process.exit(0),100);
+`, { mode: 0o700 });
+  const child = spawn(process.execPath, [fileURLToPath(new URL('../bin/codex-thinking-knob-desktop.mjs', import.meta.url)), 'app-server'], {
+    env: { ...process.env, KNOB_NATIVE_BINARY: fake }, stdio: ['pipe','pipe','pipe'], detached: true,
+  });
+  t.after(async () => {
+    try { process.kill(-child.pid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
+    const { readFile } = await import('node:fs/promises');
+    try { process.kill(Number(await readFile(pidFile, 'utf8')), 'SIGKILL'); } catch (error) { if (!['ESRCH', 'ENOENT'].includes(error.code)) throw error; }
+    await rm(dir, { recursive: true, force: true });
+  });
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Adapter retained an orphaned protocol pipe')), 2500);
+    child.once('close', code => { clearTimeout(timer); assert.equal(code, 0); resolve(); });
+  });
+  const { readFile } = await import('node:fs/promises');
+  const pid = Number(await readFile(pidFile, 'utf8'));
+  assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+});
