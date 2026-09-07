@@ -10,8 +10,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Codex Thinking Knob",
-    "shortDescription": "Adaptive Astra effort for Codex App Server",
-    "longDescription": "A standalone App Server wrapper with explicit launcher setup. Independently installable; no other ToolboxMD modules required.",
+    "shortDescription": "Adaptive Astra effort in existing desktop tasks",
+    "longDescription": "A native desktop adapter and MCP effort tool, with explicit activation and an optional stdio client launcher. Independently installable; no other ToolboxMD modules required.",
     "developerName": "ToolboxMD",
     "category": "Developer Tools",
     "capabilities": [
@@ -20,7 +20,7 @@
     ],
     "websiteURL": "https://github.com/toolboxmd/codex-thinking-knob",
     "defaultPrompt": [
-      "Help me connect Thinking Knob to my App Server client."
+      "Help me activate Thinking Knob in this desktop conversation."
     ]
   },
   "version": "0.1.1",

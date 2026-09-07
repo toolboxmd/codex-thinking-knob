@@ -1,6 +1,6 @@
 {
   "name": "@toolboxmd/codex-thinking-knob",
-  "description": "A standalone Codex App Server wrapper for adaptive Astra reasoning effort.",
+  "description": "A Codex plugin and native desktop adapter for adaptive Astra reasoning effort.",
   "type": "module",
   "bin": {
     "codex-thinking-knob": "bin/codex-thinking-knob.mjs",

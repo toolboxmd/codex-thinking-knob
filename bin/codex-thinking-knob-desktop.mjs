@@ -34,8 +34,13 @@ if (!isServer) {
   const control = await createControl(bridge.setEffort);
   child = spawn(binary, [...args, '--enable', 'step_model_switching'], {
     env: { ...process.env, KNOB_CONTROL_SOCKET: control.socket, KNOB_CONTROL_TOKEN: control.token,
-      CODEX_CLI_PATH: binary }, stdio: ['pipe', 'pipe', 'inherit'],
+      CODEX_CLI_PATH: binary }, stdio: ['pipe', 'pipe', 'inherit'], detached: true,
   });
+  function signalNative(signal) {
+    if (!child.pid) return;
+    try { process.kill(-child.pid, signal); }
+    catch (error) { if (error.code !== 'ESRCH') process.stderr.write('Unable to stop native process group\n'); }
+  }
   function send(stream, message) {
     if (stopping || stream.destroyed) return;
     if (stream.writableLength > 8 * 1024 * 1024) { void stop(1); return; }
@@ -45,8 +50,8 @@ if (!isServer) {
     if (stopping) return;
     stopping = true; process.exitCode = code; bridge.close();
     for (const input of inputs) input.close();
-    process.stdin.pause(); child.stdin.destroy(); child.kill('SIGTERM');
-    force = setTimeout(() => child.kill('SIGKILL'), 1000); force.unref();
+    process.stdin.pause(); child.stdin.destroy(); signalNative('SIGTERM');
+    force = setTimeout(() => signalNative('SIGKILL'), 1000); force.unref();
     await control.close();
   }
   function read(stream, receive) {
@@ -68,7 +73,7 @@ if (!isServer) {
   read(process.stdin, bridge.client).on('close', () => void stop());
   read(child.stdout, bridge.server);
   child.once('error', () => void stop(1));
-  child.once('exit', (code, signal) => { clearTimeout(force); void stop(code ?? (signal ? 1 : 0)); });
+  child.once('exit', (code, signal) => { void stop(code ?? (signal ? 1 : 0)); });
   for (const stream of [child.stdin, child.stdout, process.stdin, process.stdout]) stream.on('error', () => void stop(1));
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => void stop(signal === 'SIGINT' ? 130 : 143));
 }

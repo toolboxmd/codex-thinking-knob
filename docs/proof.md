@@ -47,3 +47,14 @@ The X launch follows a usable public installation path. A capability demo must
 be distinguished from an efficiency comparison. Any savings claim needs a
 comparison that includes accepted output quality, review, retries, elapsed
 time and token usage. This implementation provides no savings benchmark.
+
+
+## Native desktop candidate
+
+The desktop release requires the actual app to launch the exact adapter,
+resume an existing conversation with unchanged identity, load the plugin tool,
+and complete real work with subsequent requests consuming upward and downward
+effort changes. Exercise native app and browser tools with their authorization
+intact. Test restart/removal against the same conversation. The local native
+provider fixture and isolated app startup are supporting proof, not this
+behavioral acceptance. Keep publication and X launch on hold until it passes.

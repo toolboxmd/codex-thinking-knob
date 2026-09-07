@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { spawn, execFileSync } from 'node:child_process';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -72,11 +72,6 @@ model_provider = "fixture"
 model_reasoning_effort = "low"
 approval_policy = "never"
 sandbox_mode = "read-only"
-[mcp_servers.thinking_knob]
-default_tools_approval_mode = "approve"
-command = ${JSON.stringify(process.execPath)}
-args = [${JSON.stringify(mcpPath)}]
-env_vars = ["KNOB_CONTROL_SOCKET", "KNOB_CONTROL_TOKEN"]
 [model_providers.fixture]
 name = "Local deterministic fixture"
 base_url = "http://127.0.0.1:${server.address().port}"
@@ -86,6 +81,22 @@ supports_websockets = false
 request_max_retries = 0
 stream_max_retries = 0
 `);
+  const market = join(dir, 'marketplace');
+  await mkdir(join(market, '.agents', 'plugins'), { recursive: true });
+  const source = join(market, 'plugins', 'codex-thinking-knob');
+  await mkdir(source, { recursive: true });
+  for (const part of ['bin', 'src', '.codex-plugin', '.mcp.json', 'package.json', 'VERSION', 'skills', 'docs', 'README.md']) {
+    await cp(fileURLToPath(new URL('../' + part, import.meta.url)), join(source, part), { recursive: true });
+  }
+  await writeFile(join(market, '.agents', 'plugins', 'marketplace.json'), JSON.stringify({
+    name: 'knob-fixture', interface: { displayName: 'Isolated test' }, plugins: [{
+      name: 'codex-thinking-knob', source: { source: 'local', path: './plugins/codex-thinking-knob' },
+      policy: { installation: 'AVAILABLE', authentication: 'ON_INSTALL' }, category: 'Developer Tools',
+    }],
+  }));
+  for (const args of [['plugin', 'marketplace', 'add', market], ['plugin', 'add', 'codex-thinking-knob@knob-fixture']]) {
+    execFileSync(binary, args, { env: { ...process.env, CODEX_HOME: home }, stdio: 'pipe' });
+  }
   // Create a persisted task before the adapter exists, then resume it through
   // the adapter. No dynamic tool registration or replacement conversation.
   const native = spawn(binary, ['app-server'], {

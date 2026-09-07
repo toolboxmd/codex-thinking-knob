@@ -81,3 +81,30 @@ test('private control socket authenticates and cleans its owned path', async () 
   } finally { await control.close(); }
   await assert.rejects(access(control.socket));
 });
+
+
+test('desktop adapter reaps native descendants that retain protocol pipes', { timeout: 5000 }, async t => {
+  const { spawn } = await import('node:child_process');
+  const { mkdtemp, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const dir = await mkdtemp(join(tmpdir(), 'knob-shutdown-'));
+  const fake = join(dir, 'codex');
+  await writeFile(fake, `#!${process.execPath}
+const {spawn}=require('node:child_process');
+spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],{stdio:'inherit'});
+setTimeout(()=>process.exit(0),100);
+`, { mode: 0o700 });
+  const child = spawn(process.execPath, [fileURLToPath(new URL('../bin/codex-thinking-knob-desktop.mjs', import.meta.url)), 'app-server'], {
+    env: { ...process.env, KNOB_NATIVE_BINARY: fake }, stdio: ['pipe','pipe','pipe'], detached: true,
+  });
+  t.after(async () => {
+    try { process.kill(-child.pid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
+    await rm(dir, { recursive: true, force: true });
+  });
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Adapter retained an orphaned protocol pipe')), 2500);
+    child.once('close', code => { clearTimeout(timer); assert.equal(code, 0); resolve(); });
+  });
+});
