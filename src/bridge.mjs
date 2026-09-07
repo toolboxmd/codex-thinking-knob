@@ -42,7 +42,10 @@ export function createBridge({ adaptive = false, timeoutMs = 10_000, toChild, to
       context = { kind: 'thread', blocked: p.config?.model_reasoning_effort != null || p.config?.collaboration_mode != null };
     } else if (m.method === 'turn/start' && hasId(m) && t) {
       // Native model/effort overrides persist as defaults. Never silently undo them.
-      if (p.model != null) t.model = p.model;
+      if (p.model != null) {
+        if (p.model !== t.model) invalidate(t);
+        t.model = p.model;
+      }
       if (p.effort != null || p.collaborationMode != null) t.blocked = true;
       t.active = null;
       t.pendingTurn = { allowed: !t.blocked && astra(t.model), token: id() };

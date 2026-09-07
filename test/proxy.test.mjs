@@ -125,6 +125,18 @@ test('explicit effort remains fixed on future turns and cancellation IDs remap',
   const h = harness(); h.start(); h.turn({ effort: 'high' }); h.turn(); assert.equal(h.call().result.success, false);
   const sent = h.request('ping', {}); h.bridge.client({ method: '$/cancelRequest', params: { id: 1 } }); assert.equal(h.child.at(-1).params.id, sent.id); h.bridge.close();
 });
+test('switching models and back keeps adaptation disabled; unchanged Astra stays eligible', t => {
+  const h = harness(); t.after(() => h.bridge.close()); h.start(); h.turn({ model: 'gpt-6-astra' });
+  const initial = h.call();
+  assert.equal(initial.method, 'turn/settings/update');
+  h.bridge.server({ id: initial.id, result: { status: 'applied' } });
+  h.turn({ model: 'gpt-5.6-luna' });
+  h.turn({ model: 'gpt-6-astra' });
+  const denied = h.call();
+  assert.equal(denied.result?.success, false);
+  assert.equal(output(denied).status, 'targetUnavailable');
+  h.bridge.close();
+});
 async function runCli(args, input = '') {
   const child = spawn(process.execPath, ['bin/codex-thinking-knob.mjs', ...args], { cwd: new URL('..', import.meta.url), stdio: ['pipe', 'pipe', 'pipe'] });
   let stdout = '', stderr = ''; child.stdout.on('data', c => stdout += c); child.stderr.on('data', c => stderr += c);
