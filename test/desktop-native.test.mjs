@@ -10,6 +10,12 @@ import { createInterface } from 'node:readline';
 
 const binary = process.env.KNOB_NATIVE_BINARY;
 const launcher = fileURLToPath(new URL('../bin/codex-thinking-knob-desktop.mjs', import.meta.url));
+const bounded = (promise, label) => {
+  let timer;
+  return Promise.race([promise, new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Timed out waiting for ${label}`)), 10_000);
+  })]).finally(() => clearTimeout(timer));
+};
 
 test('desktop task preserves effort control and history across interruption, restart, and wrapper removal', {
   skip: !binary && 'Set KNOB_NATIVE_BINARY to the Codex 0.153.4 executable',
@@ -141,7 +147,7 @@ stream_max_retries = 0
     child.stderr.on('data', chunk => { stderr += chunk; });
     const pending = new Map();
     const events = [];
-    const eventWaiters = [];
+    const eventWaiters = new Set();
     createInterface({ input: child.stdout }).on('line', line => {
       const message = JSON.parse(line);
       if (message.id !== undefined && pending.has(message.id)) {
@@ -150,7 +156,9 @@ stream_max_retries = 0
         else resolve(message.result);
       } else {
         events.push(message);
-        for (const waiter of [...eventWaiters]) if (waiter.predicate(message)) waiter.resolve(message);
+        for (const waiter of eventWaiters) if (waiter.predicate(message)) {
+          eventWaiters.delete(waiter); waiter.resolve(message);
+        }
         // The wrapper must handle its dynamic calls; anything else is a failure.
         if (message.method && message.id !== undefined) {
           child.stdin.write(JSON.stringify({ id: message.id, error: { code: -32601, message: 'Unexpected server request in fixture' } }) + '\n');
@@ -158,7 +166,10 @@ stream_max_retries = 0
       }
     });
     child.on('exit', (code, signal) => {
-      for (const { reject } of pending.values()) reject(new Error(`Wrapper exited ${code ?? signal}: ${stderr}`));
+      const error = new Error(`Fixture process exited ${code ?? signal}: ${stderr}`);
+      for (const { reject } of pending.values()) reject(error);
+      for (const { reject } of eventWaiters) reject(error);
+      eventWaiters.clear();
     });
     let nextId = 0;
     const rpc = (method, params) => new Promise((resolve, reject) => {
@@ -167,7 +178,11 @@ stream_max_retries = 0
     });
     const event = predicate => {
       const found = events.find(predicate);
-      return found ? Promise.resolve(found) : new Promise(resolve => eventWaiters.push({ predicate, resolve }));
+      if (found) return Promise.resolve(found);
+      let waiter;
+      return bounded(new Promise((resolve, reject) => {
+        waiter = { predicate, resolve, reject }; eventWaiters.add(waiter);
+      }), 'native turn event').finally(() => eventWaiters.delete(waiter));
     };
     return { rpc, event };
   }
@@ -198,7 +213,7 @@ stream_max_retries = 0
   // user message along with both completed turns through two process restarts.
   holdResponse = true;
   const interrupted = await rpc('turn/start', { threadId, input: [{ type: 'text', text: 'Retain this interrupted request.', text_elements: [] }] });
-  await heldRequest;
+  await bounded(Promise.race([heldRequest, childClosed.then(() => { throw new Error('Adapter exited before held provider request'); })]), 'held provider request');
   await rpc('turn/interrupt', { threadId, turnId: interrupted.turn.id });
   assert.equal((await event(m => m.method === 'turn/completed' && m.params.turn.id === interrupted.turn.id)).params.turn.status, 'interrupted');
   holdResponse = false;
@@ -219,11 +234,17 @@ stream_max_retries = 0
     assert.equal((await rpc('thread/resume', { threadId, cwd })).thread.id, threadId);
     assert.deepEqual(await history(), saved, wrapped ? 'Adapter restart changed saved history' : 'Normal native launch changed saved history');
     adapting = wrapped; requests.length = 0;
-    const continued = await rpc('turn/start', { threadId, effort: 'low', input: [{ type: 'text', text: wrapped ? 'Continue after adapter restart.' : 'Continue after removing the wrapper.', text_elements: [] }] });
+    const continuationText = wrapped ? 'Continue after adapter restart.' : 'Continue after removing the wrapper.';
+    const continued = await rpc('turn/start', { threadId, effort: 'low', input: [{ type: 'text', text: continuationText, text_elements: [] }] });
     assert.equal((await event(m => m.method === 'turn/completed' && m.params.turn.id === continued.turn.id)).params.turn.status, 'completed');
     assert.deepEqual(requests.map(r => r.reasoning.effort), wrapped ? ['low', 'high', 'low'] : ['low']);
     const next = await history();
     assert.equal(next.length, saved.length + 1);
+    const persisted = next.find(t => t.id === continued.turn.id);
+    assert.ok(persisted, 'Continued turn was not saved');
+    assert.equal(persisted.status, 'completed');
+    assert.ok(persisted.items.some(i => i.type === 'userMessage' && i.content.some(c => c.type === 'text' && c.text === continuationText)), 'Continued user message was not saved');
+    assert.ok(persisted.items.some(i => i.type === 'agentMessage' && i.text === 'Fixture complete.'), 'Continued assistant message was not saved');
     assert.deepEqual(next.filter(t => t.id !== continued.turn.id), saved);
     saved = next;
   }
