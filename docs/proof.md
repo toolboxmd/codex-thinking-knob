@@ -2,7 +2,8 @@
 
 The package's deterministic gate is `npm test`. The native seam additionally
 requires `KNOB_NATIVE_BINARY=/absolute/path/to/codex npm run test:native` with
-Codex 0.153.4. CI runs both gates using the pinned Codex package.
+Codex 0.153.4. It runs both the custom-client and desktop integration tests.
+CI runs both gates using the pinned Codex package.
 
 The native test creates a temporary Codex configuration pointing at a loopback
 Responses fixture. It supplies deterministic tool calls, observes the real App
@@ -76,3 +77,12 @@ This checks the real native peer authorizer against the packaged desktop shim,
 a fixture-owned MCP pipe and a loopback provider. It proves authorization at
 that seam, not full desktop behavior. The fixture starts its own App Servers
 with fresh profiles and an explicit environment; it never attaches to the app.
+
+The desktop integration test retains a pre-existing task, applies upward and
+downward effort changes, interrupts a pending provider request, and verifies
+exact saved turn IDs, statuses and items across an adapter restart and a
+normal native launch without the wrapper. It also completes another turn in
+each launch mode. Every fixture owns both its Codex and SQLite directories
+and uses file-based credential storage with an unauthenticated loopback
+provider. This is native protocol and persistence proof, not desktop GUI or
+authenticated Astra acceptance.

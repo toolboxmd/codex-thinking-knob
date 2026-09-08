@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "test:native": "node --test test/native.test.mjs"
+    "test:native": "node --test test/native.test.mjs test/desktop-native.test.mjs"
   },
   "repository": {
     "type": "git",
@@ -32,5 +32,5 @@
   "homepage": "https://github.com/toolboxmd/codex-thinking-knob",
   "author": "ToolboxMD",
   "private": true,
-  "version": "0.2.0"
+  "version": "0.2.1"
 }

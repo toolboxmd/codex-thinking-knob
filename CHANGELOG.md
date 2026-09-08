@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.1] - 2026-09-08
+
+### Changed
+
+- Verify desktop interruption, restart and wrapper removal in native CI
+
 ## [0.2.0] - 2026-09-07
 
 ### Added

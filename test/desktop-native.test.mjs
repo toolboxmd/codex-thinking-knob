@@ -10,8 +10,14 @@ import { createInterface } from 'node:readline';
 
 const binary = process.env.KNOB_NATIVE_BINARY;
 const launcher = fileURLToPath(new URL('../bin/codex-thinking-knob-desktop.mjs', import.meta.url));
+const bounded = (promise, label) => {
+  let timer;
+  return Promise.race([promise, new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Timed out waiting for ${label}`)), 10_000);
+  })]).finally(() => clearTimeout(timer));
+};
 
-test('desktop adapter resumes a pre-existing native task and captures MCP effort changes', {
+test('desktop task preserves effort control and history across interruption, restart, and wrapper removal', {
   skip: !binary && 'Set KNOB_NATIVE_BINARY to the Codex 0.153.4 executable',
   timeout: 45000,
 }, async t => {
@@ -41,9 +47,10 @@ test('desktop adapter resumes a pre-existing native task and captures MCP effort
   const home = join(dir, 'codex');
   const cwd = join(dir, 'work');
   await mkdir(home); await mkdir(cwd);
-  const mcpPath = fileURLToPath(new URL('../bin/thinking-knob-mcp.mjs', import.meta.url));
+  const fixtureEnv = { ...process.env, CODEX_HOME: home, CODEX_SQLITE_HOME: home };
   const requests = [];
-  let adapting = false;
+  let adapting = false, holdResponse = false, providerStarted;
+  const heldRequest = new Promise(resolve => { providerStarted = resolve; });
   server = createServer(async (req, res) => {
     if (req.method !== 'POST' || req.url !== '/responses') {
       res.writeHead(404); res.end(); return;
@@ -51,6 +58,7 @@ test('desktop adapter resumes a pre-existing native task and captures MCP effort
     let body = '';
     for await (const chunk of req) body += chunk;
     const input = JSON.parse(body);
+    if (holdResponse) { providerStarted(); return; }
     requests.push(input);
     const index = requests.length;
     const item = adapting && index <= 2
@@ -67,7 +75,8 @@ test('desktop adapter resumes a pre-existing native task and captures MCP effort
     res.end();
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  await writeFile(join(home, 'config.toml'), `model = "gpt-6-astra"
+  await writeFile(join(home, 'config.toml'), `cli_auth_credentials_store = "file"
+model = "gpt-6-astra"
 model_provider = "fixture"
 model_reasoning_effort = "low"
 approval_policy = "never"
@@ -95,12 +104,12 @@ stream_max_retries = 0
     }],
   }));
   for (const args of [['plugin', 'marketplace', 'add', market], ['plugin', 'add', 'codex-thinking-knob@knob-fixture']]) {
-    execFileSync(binary, args, { env: { ...process.env, CODEX_HOME: home }, stdio: 'pipe' });
+    execFileSync(binary, args, { env: fixtureEnv, stdio: 'pipe' });
   }
   // Create a persisted task before the adapter exists, then resume it through
   // the adapter. No dynamic tool registration or replacement conversation.
   const native = spawn(binary, ['app-server'], {
-    cwd, env: { ...process.env, CODEX_HOME: home }, stdio: ['pipe','pipe','ignore'],
+    cwd, env: fixtureEnv, stdio: ['pipe','pipe','ignore'],
   });
   const nativeClosed = new Promise(resolve => native.once('close', resolve));
   const waits = new Map();
@@ -127,42 +136,65 @@ stream_max_retries = 0
     try { await nativeClosed; } finally { clearTimeout(force); }
   }
   adapting = true; requests.length = 0;
-  child = spawn(process.execPath, [launcher, '-c', 'features.code_mode_host=true', 'app-server', '--analytics-default-enabled'], {
-    cwd, env: { ...process.env, KNOB_NATIVE_BINARY: binary, KNOB_ADAPTIVE_THREAD: existing.result.thread.id, CODEX_HOME: home }, stdio: ['pipe', 'pipe', 'pipe'], detached: true,
-  });
-  childClosed = new Promise(resolve => child.once('close', resolve));
-  let stderr = '';
-  child.stderr.on('data', chunk => { stderr += chunk; });
-  const pending = new Map();
-  const events = [];
-  const eventWaiters = [];
-  createInterface({ input: child.stdout }).on('line', line => {
-    const message = JSON.parse(line);
-    if (message.id !== undefined && pending.has(message.id)) {
-      const { resolve, reject } = pending.get(message.id); pending.delete(message.id);
-      if (message.error) reject(new Error(JSON.stringify(message.error)));
-      else resolve(message.result);
-    } else {
-      events.push(message);
-      for (const waiter of [...eventWaiters]) if (waiter.predicate(message)) waiter.resolve(message);
-      // The wrapper must handle its dynamic calls; anything else is a failure.
-      if (message.method && message.id !== undefined) {
-        child.stdin.write(JSON.stringify({ id: message.id, error: { code: -32601, message: 'Unexpected server request in fixture' } }) + '\n');
+  function connect(wrapped = true) {
+    child = spawn(wrapped ? process.execPath : binary, wrapped
+      ? [launcher, '-c', 'features.code_mode_host=true', 'app-server', '--analytics-default-enabled']
+      : ['-c', 'features.code_mode_host=true', 'app-server'], {
+      cwd, env: { ...fixtureEnv, KNOB_NATIVE_BINARY: binary, KNOB_ADAPTIVE_THREAD: existing.result.thread.id }, stdio: ['pipe', 'pipe', 'pipe'], detached: true,
+    });
+    childClosed = new Promise(resolve => child.once('close', resolve));
+    let stderr = '';
+    child.stderr.on('data', chunk => { stderr += chunk; });
+    const pending = new Map();
+    const events = [];
+    const eventWaiters = new Set();
+    createInterface({ input: child.stdout }).on('line', line => {
+      const message = JSON.parse(line);
+      if (message.id !== undefined && pending.has(message.id)) {
+        const { resolve, reject } = pending.get(message.id); pending.delete(message.id);
+        if (message.error) reject(new Error(JSON.stringify(message.error)));
+        else resolve(message.result);
+      } else {
+        events.push(message);
+        for (const waiter of eventWaiters) if (waiter.predicate(message)) {
+          eventWaiters.delete(waiter); waiter.resolve(message);
+        }
+        // The wrapper must handle its dynamic calls; anything else is a failure.
+        if (message.method && message.id !== undefined) {
+          child.stdin.write(JSON.stringify({ id: message.id, error: { code: -32601, message: 'Unexpected server request in fixture' } }) + '\n');
+        }
       }
-    }
-  });
-  child.on('exit', (code, signal) => {
-    for (const { reject } of pending.values()) reject(new Error(`Wrapper exited ${code ?? signal}: ${stderr}`));
-  });
-  let nextId = 0;
-  const rpc = (method, params) => new Promise((resolve, reject) => {
-    const id = ++nextId; pending.set(id, { resolve, reject });
-    child.stdin.write(JSON.stringify({ id, method, params }) + '\n');
-  });
-  const event = predicate => {
-    const found = events.find(predicate);
-    return found ? Promise.resolve(found) : new Promise(resolve => eventWaiters.push({ predicate, resolve }));
-  };
+    });
+    child.on('exit', (code, signal) => {
+      const error = new Error(`Fixture process exited ${code ?? signal}: ${stderr}`);
+      for (const { reject } of pending.values()) reject(error);
+      for (const { reject } of eventWaiters) reject(error);
+      eventWaiters.clear();
+    });
+    let nextId = 0;
+    const rpc = (method, params) => new Promise((resolve, reject) => {
+      const id = ++nextId; pending.set(id, { resolve, reject });
+      child.stdin.write(JSON.stringify({ id, method, params }) + '\n');
+    });
+    const event = predicate => {
+      const found = events.find(predicate);
+      if (found) return Promise.resolve(found);
+      let waiter;
+      return bounded(new Promise((resolve, reject) => {
+        waiter = { predicate, resolve, reject }; eventWaiters.add(waiter);
+      }), 'native turn event').finally(() => eventWaiters.delete(waiter));
+    };
+    return { rpc, event };
+  }
+  async function disconnect() {
+    child.stdin.end();
+    const force = setTimeout(() => {
+      try { process.kill(-child.pid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
+    }, 3000);
+    try { await childClosed; } finally { clearTimeout(force); }
+    child = undefined;
+  }
+  let { rpc, event } = connect();
   await rpc('initialize', { clientInfo: { name: 'thinking_knob_fixture', version: '0.1.0' }, capabilities: { experimentalApi: true } });
   child.stdin.write(JSON.stringify({ method: 'initialized', params: {} }) + '\n');
   const started = await rpc('thread/resume', { threadId: existing.result.thread.id, cwd });
@@ -176,4 +208,45 @@ stream_max_retries = 0
   const output = requests.at(-1).input.filter(x => x.type.endsWith('_output'));
   assert.match(JSON.stringify(output), /applied/);
   assert.doesNotMatch(JSON.stringify(output), /targetUnavailable|fixedPolicy|notActivated/);
+
+  // Interrupt while a real provider request is pending, then retain the saved
+  // user message along with both completed turns through two process restarts.
+  holdResponse = true;
+  const interrupted = await rpc('turn/start', { threadId, input: [{ type: 'text', text: 'Retain this interrupted request.', text_elements: [] }] });
+  await bounded(Promise.race([heldRequest, childClosed.then(() => { throw new Error('Adapter exited before held provider request'); })]), 'held provider request');
+  await rpc('turn/interrupt', { threadId, turnId: interrupted.turn.id });
+  assert.equal((await event(m => m.method === 'turn/completed' && m.params.turn.id === interrupted.turn.id)).params.turn.status, 'interrupted');
+  holdResponse = false;
+  const history = async () => (await rpc('thread/turns/list', { threadId, limit: 20, itemsView: 'full' })).data
+    .map(({ id, status, items }) => ({ id, status, items }));
+  let saved = await history();
+  assert.equal(saved.length, 3);
+  assert.equal(saved.filter(t => t.status === 'completed').length, 2);
+  assert.equal(saved.filter(t => t.status === 'interrupted').length, 1);
+  for (const text of ['Create a retained conversation.', 'Exercise the local protocol fixture.', 'Retain this interrupted request.']) {
+    assert.ok(JSON.stringify(saved).includes(text), `Missing saved message: ${text}`);
+  }
+  for (const wrapped of [true, false]) {
+    await disconnect();
+    ({ rpc, event } = connect(wrapped));
+    await rpc('initialize', { clientInfo: { name: 'restart_fixture', version: '1' }, capabilities: { experimentalApi: true } });
+    child.stdin.write(JSON.stringify({ method: 'initialized', params: {} }) + '\n');
+    assert.equal((await rpc('thread/resume', { threadId, cwd })).thread.id, threadId);
+    assert.deepEqual(await history(), saved, wrapped ? 'Adapter restart changed saved history' : 'Normal native launch changed saved history');
+    adapting = wrapped; requests.length = 0;
+    const continuationText = wrapped ? 'Continue after adapter restart.' : 'Continue after removing the wrapper.';
+    const continued = await rpc('turn/start', { threadId, effort: 'low', input: [{ type: 'text', text: continuationText, text_elements: [] }] });
+    assert.equal((await event(m => m.method === 'turn/completed' && m.params.turn.id === continued.turn.id)).params.turn.status, 'completed');
+    assert.deepEqual(requests.map(r => r.reasoning.effort), wrapped ? ['low', 'high', 'low'] : ['low']);
+    const next = await history();
+    assert.equal(next.length, saved.length + 1);
+    const persisted = next.find(t => t.id === continued.turn.id);
+    assert.ok(persisted, 'Continued turn was not saved');
+    assert.equal(persisted.status, 'completed');
+    assert.ok(persisted.items.some(i => i.type === 'userMessage' && i.content.some(c => c.type === 'text' && c.text === continuationText)), 'Continued user message was not saved');
+    assert.ok(persisted.items.some(i => i.type === 'agentMessage' && i.text === 'Fixture complete.'), 'Continued assistant message was not saved');
+    assert.deepEqual(next.filter(t => t.id !== continued.turn.id), saved);
+    saved = next;
+  }
+  await disconnect();
 });
