@@ -23,6 +23,6 @@
       "Help me activate Thinking Knob in this desktop conversation."
     ]
   },
-  "version": "0.2.0",
+  "version": "0.2.1",
   "mcpServers": "./.mcp.json"
 }
